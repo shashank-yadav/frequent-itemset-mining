@@ -90,11 +90,13 @@ bool apriori::checkSubset(vector<int> subset , int k){
 bool apriori::toPrune(vector<int> c, int k){
 
 	for (int i = 0; i < c.size(); ++i){
-		vector<int> subset;
+		
+		vector<int> subset(c.size()-1 , 0);
+		int it = 0;
 
 		for (int j = 0; j < c.size(); ++j){
 			if( j != i)
-				subset.push_back( c[j] );
+				subset[it++]  =  c[j];
 		}
 
 		if( !checkSubset(subset , k) )
@@ -104,21 +106,31 @@ bool apriori::toPrune(vector<int> c, int k){
 	return false;
 }
 
+void apriori::copy_vec(vector<int> &c , vector<int> &x , int end){
+	
+	for( int i = 0; i < x.size(); i++)
+		c[i] = x[i];
+
+	c[ c.size() - 1] = end;
+}
+
 vector<vector<int> > apriori::candidate_gen(int k){
 	vector<vector<int> > Ck;
 
 	for (int i = 0; i < F[k].size(); ++i){
 		for (int j = i+1; j < F[k].size(); ++j){
 			
-			vector<int> c;
+			vector<int> c( k+2, 0 );
 			
 			if ( isMatch( F[k][i] , F[k][j]) ){
 				if ( F[k][i].back() < F[k][j].back() ){
-					c = F[k][i];
-					c.push_back(F[k][j].back());
+					copy_vec( c , F[k][i] , F[k][j].back() );
+					// c = F[k][i];
+					// c.push_back(F[k][j].back());
 				}else{
-					c = F[k][j];
-					c.push_back(F[k][i].back());
+					copy_vec( c , F[k][j] , F[k][i].back() );
+					// c = F[k][j];
+					// c.push_back(F[k][i].back());
 				}
 				
 				if( !toPrune( c , k)){
@@ -154,15 +166,35 @@ void apriori::printF(int i){
 	cout<<i<<" "<<F[i].size()<<endl;
 	for (int j = 0; j < F[i].size(); ++j){
 		for (int k = 0; k < F[i][j].size(); ++k){
-			cout<<F[i][j][k]<<" ";
+			cout<<F[i][j][k];
 		}
 		cout<<endl;
 	}
 }
 
+
+void apriori::write( string filename ){
+	
+	ofstream f(filename.c_str());
+
+	for( int i = 0; i < F.size(); i++ ){
+		for (int j = 0; j < F[i].size(); ++j){
+			for (int k = 0; k < F[i][j].size(); ++k){
+				f<<F[i][j][k];
+				if( k != F[i][j].size()-1)
+					f<<" ";
+			}
+			f<<'\n';
+		}
+	}
+
+	f.close();
+}
+
 void apriori::algo(){
 	
 	init_pass();
+	cout<<"init_pass"<<endl;
 
 	unordered_map< vector<int> , int , my_hash > count;
 	int n = T.size();
@@ -170,19 +202,31 @@ void apriori::algo(){
 	for (int i = 1; F[i-1].size() > 0; ++i){
 
 		vector<vector<int> > Ck = candidate_gen(i-1);
+		cout<<"candidate_gen "<<i-1<<endl;
 
 		for (int j = 0; j < T.size(); ++j){
-			for (int k = 0; k < Ck.size(); ++k){
-				if (isSubset( Ck[k] , T[j] ) ){
-					
-					if( count.find( Ck[k] ) == count.end() ){
-						count[ Ck[k] ] = 1;				
-					}else{
-						count[ Ck[k] ] += 1;
+			
+			#pragma omp parallel for
+				for (int k = 0; k < Ck.size(); ++k){
+					if (isSubset( Ck[k] , T[j] ) ){
+						
+						int &val = count[ Ck[k] ];
+
+						if( !val ){
+							val = 1;
+						}else{
+							val += 1;
+						}
+						// if( count.find( Ck[k] ) == count.end() ){
+						// 	count[ Ck[k] ] = 1;				
+						// }else{
+						// 	count[ Ck[k] ] += 1;
+						// }
 					}
 				}
-			}
 		}
+
+		cout<<"end0 "<<i-1<<endl;
 
 		vector< vector<int> > temp_v;
 		
@@ -192,6 +236,9 @@ void apriori::algo(){
 			}
 		}
 
-		F.push_back( temp_v );		
+		F.push_back( temp_v );
+		
+		cout<<"end1 "<<i-1<<endl;
+
 	}
 }

@@ -5,6 +5,11 @@
 #include <unordered_map>
 #include <algorithm>
 #include <boost/functional/hash.hpp>
+#include <omp.h>
+
+// #include <unistd.h>
+
+// sysconf(_SC_NPROCESSORS_ONLN);
 
 using namespace std;
 
@@ -25,8 +30,10 @@ public:
 	bool isMatch( vector<int> f1 , vector<int> f2 );
 	bool checkSubset(vector<int> subset , int k);
 	bool toPrune(vector<int> c, int k);
+	void copy_vec(vector<int> &c , vector<int> &x , int end);
 	vector<vector<int> > candidate_gen(int k);
 	bool isSubset(vector<int> Ck, vector<int> t );
+	void write( string filename );
 	void algo();
 	
 };

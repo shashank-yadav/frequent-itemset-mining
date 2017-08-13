@@ -2,12 +2,10 @@
 
 using namespace std;
 
-class my_hash {
-public:
-  size_t operator()(const vector<int> &v) const {
-    return boost::hash_value(v);
-  }
-};
+size_t my_hash::operator()(const vector<int> &v) const {
+return boost::hash_value(v);
+}
+
 
 apriori::apriori(string filename, float X){
 	
@@ -41,6 +39,9 @@ void apriori::init_pass(){
 			}else{
 				count[ T[i][j] ] += 1;
 			}
+
+			vector<int> v =  {T[i][j]};
+			reverse_hash[ v ].push_back(i);
 		}
 	}
 
@@ -49,8 +50,8 @@ void apriori::init_pass(){
 
 	for (auto it = count.begin(); it != count.end(); ++it){
 		if( (float)it->second / (float)n >= minsup ){
-			cout<<(float)it->second / (float)n<<endl;
-			temp_v.push_back(it->first);
+			// cout<<(float)it->second / (float)n<<endl;
+			temp_v.push_back(it->first);  
 		}
 	}
 
@@ -117,6 +118,8 @@ void apriori::copy_vec(vector<int> &c , vector<int> &x , int end){
 vector<vector<int> > apriori::candidate_gen(int k){
 	vector<vector<int> > Ck;
 
+	unordered_map< vector<int> , vector<int> , my_hash > new_reverse_hash;
+	
 	for (int i = 0; i < F[k].size(); ++i){
 		for (int j = i+1; j < F[k].size(); ++j){
 			
@@ -132,13 +135,21 @@ vector<vector<int> > apriori::candidate_gen(int k){
 					// c = F[k][j];
 					// c.push_back(F[k][i].back());
 				}
-				
-				if( !toPrune( c , k)){
+
+				vector<int> &intersec = new_reverse_hash[ c ];
+				set_intersection( reverse_hash[F[k][i]].begin() , reverse_hash[F[k][i]].end(), reverse_hash[F[k][j]].begin() , reverse_hash[F[k][j]].end(),   std::back_inserter(intersec) );
+
+				// new_reverse_hash[ c ] = intersec;
+
+				float support = (float)intersec.size()/(float)T.size();
+				if( support >= minsup && !toPrune( c , k)){
 					Ck.push_back(c);
 				}
 			}		
 		}
 	}
+
+	reverse_hash = new_reverse_hash;
 
 	return Ck;
 }
@@ -194,7 +205,7 @@ void apriori::write( string filename ){
 void apriori::algo(){
 	
 	init_pass();
-	cout<<"init_pass"<<endl;
+	// cout<<"init_pass"<<endl;
 
 	unordered_map< vector<int> , int , my_hash > count;
 	int n = T.size();
@@ -202,43 +213,19 @@ void apriori::algo(){
 	for (int i = 1; F[i-1].size() > 0; ++i){
 
 		vector<vector<int> > Ck = candidate_gen(i-1);
-		cout<<"candidate_gen "<<i-1<<endl;
-
-		for (int j = 0; j < T.size(); ++j){
-			
-			#pragma omp parallel for
-				for (int k = 0; k < Ck.size(); ++k){
-					if (isSubset( Ck[k] , T[j] ) ){
-						
-						int &val = count[ Ck[k] ];
-
-						if( !val ){
-							val = 1;
-						}else{
-							val += 1;
-						}
-						// if( count.find( Ck[k] ) == count.end() ){
-						// 	count[ Ck[k] ] = 1;				
-						// }else{
-						// 	count[ Ck[k] ] += 1;
-						// }
-					}
-				}
-		}
-
-		cout<<"end0 "<<i-1<<endl;
+		// cout<<"candidate_gen "<<i-1<<endl;
 
 		vector< vector<int> > temp_v;
 		
+		// cout<<Ck.size()<<endl;
+
 		for (int j = 0; j < Ck.size(); ++j){
-			if( (float)count[ Ck[j] ]/(float)n >= minsup ){
-				temp_v.push_back( Ck[j] );
-			}
+			temp_v.push_back( Ck[j] );
 		}
 
 		F.push_back( temp_v );
 		
-		cout<<"end1 "<<i-1<<endl;
+		// cout<<"end1 "<<i-1<<endl;
 
 	}
 }

@@ -23,7 +23,7 @@ int main(int argc, char const *argv[])
 
 	apriori a( argv[1] , minsup );
 	a.algo();	
-	a.write( "out.txt");
+	a.write( "2013CS50799.txt");
 
 	return 0;
 }

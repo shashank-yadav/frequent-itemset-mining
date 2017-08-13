@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <set>
 #include <unordered_map>
 #include <algorithm>
 #include <boost/functional/hash.hpp>
@@ -13,6 +14,13 @@
 
 using namespace std;
 
+class my_hash {
+public:
+  size_t operator()(const vector<int> &v) const;
+};
+
+
+
 class apriori
 {
 
@@ -21,6 +29,7 @@ public:
 	float minsup;
 	vector< vector<int> > T;
 	vector< vector< vector<int> > > F;
+	unordered_map< vector<int> , vector<int> , my_hash > reverse_hash;
 
 	apriori(string filename, float X);
 	~apriori();
